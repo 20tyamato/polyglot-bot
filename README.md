@@ -47,7 +47,7 @@
 1. ボットを起動します
 
 ```bash
-python src/bot.py
+python src/main.py
 ```
 
 1. Discordサーバー内で、翻訳したいメッセージに返信します
