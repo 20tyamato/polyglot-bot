@@ -127,9 +127,11 @@ async def on_ready():
 async def on_message(message):
     if message.author == bot.user:
         return
-    await bot.process_commands(message)
-    if message.content.strip().startswith("!"):
+
+    if message.content.startswith("!"):
+        await bot.process_commands(message)
         return
+
     if message.content.strip().startswith("@translator"):
         if not message.reference:
             await message.channel.send(
@@ -280,6 +282,7 @@ async def on_message(message):
             logger.info(
                 f"Translation requested by {message.author} but an error occurred: {e}"
             )
+    await bot.process_commands(message)
 
 
 async def translate_text(text, target_language):
