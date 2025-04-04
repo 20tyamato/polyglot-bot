@@ -124,17 +124,17 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    if message.reference and message.content.strip().startswith("@translator"):
-        if not message.reference:
-            await message.channel.send(
-                "⚠️ **Error**: Please use this command as a reply to the message you want to translate.\n"
-                "For example, reply to a message with `@translator en` to translate it to English."
-            )
-            logger.info(
-                f"Translation incorrectly requested by {message.author} without replying to a message."
-            )
-            return
+    if not message.reference:
+        await message.channel.send(
+            "⚠️ **Error**: Please use this command as a reply to the message you want to translate.\n"
+            "For example, reply to a message with `@translator en` to translate it to English."
+        )
+        logger.info(
+            f"Translation incorrectly requested by {message.author} without replying to a message."
+        )
+        return
 
+    if message.reference and message.content.strip().startswith("@translator"):
         command = message.content.strip().split()
 
         if len(command) <= 1:
