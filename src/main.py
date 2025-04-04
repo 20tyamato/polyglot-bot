@@ -5,7 +5,7 @@ import discord
 import openai
 from discord.ext import commands
 
-from common import logger
+from src.common import SUPPORTED_LANGUAGES, logger
 
 # Set Discord bot token and access permissions
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -33,8 +33,7 @@ async def on_ready():
         logger.info(f"Running on {len(bot.guilds)} server")
 
     for guild in bot.guilds:
-        # target_channel_names = ["discord-test", "novel-translation"]
-        target_channel_names = ["discord-test"]
+        target_channel_names = ["discord-test", "novel-translation"]
         target_channels = []
 
         for channel_name in target_channel_names:
@@ -46,6 +45,13 @@ async def on_ready():
         if target_channels:
             for channel in target_channels:
                 try:
+                    language_commands = "\n".join(
+                        [
+                            f"   • `@translator {lang_code}` - {lang_info['description']} {lang_info['emoji']}"
+                            for lang_code, lang_info in SUPPORTED_LANGUAGES.items()
+                        ]
+                    )
+
                     await channel.send(
                         "```ini\n[POLYGLOT TRANSLATOR BOT]\n```\n"
                         "🌐 **Hello! I'm Polyglot, your AI-powered translator bot!** 🌐\n\n"
@@ -53,13 +59,13 @@ async def on_ready():
                         "## **How to Use Me:**\n"
                         "① **Reply** to any message you want to translate\n"
                         "② Type one of these commands:\n"
-                        "   • `@translator en` - to translate to English 🇬🇧\n"
-                        "   • `@translator jp` - to translate to Japanese 🇯🇵\n\n"
+                        f"{language_commands}\n\n"
                         "🔍 **Examples:**\n"
                         "> Reply to a Japanese message with `@translator en`\n"
                         "> Reply to an English message with `@translator jp`\n\n"
                         "💫 Powered by state-of-the-art AI for accurate and natural translations!\n"
-                        "⭐ I'm here whenever you need language assistance! ⭐"
+                        "⭐ I'm here whenever you need language assistance! ⭐\n\n"
+                        "📝 **Want more languages added?** Please contact 〇〇 to request additional languages."
                     )
                     logger.info(
                         f"Sent introduction message to {channel.name} in {guild.name}"
@@ -95,7 +101,7 @@ async def on_message(message):
                     )
                     return
 
-                if language in ["en", "jp"]:
+                if language in SUPPORTED_LANGUAGES:
                     async with message.channel.typing():
                         translated_text = await translate_text(original_text, language)
                         thread_name = f"Translation: {language.upper()}"
@@ -122,9 +128,14 @@ async def on_message(message):
                                 f"Translation requested by {message.author} and sent successfully in a thread."
                             )
                         else:
-                            await thread.send(f"Translation result:\n{translated_text}")
-                            logger.info(
-                                f"Translation requested by {message.author} and sent successfully in a thread."
+                            supported_langs = ", ".join(
+                                [
+                                    f"'{code}' ({info['name']})"
+                                    for code, info in SUPPORTED_LANGUAGES.items()
+                                ]
+                            )
+                            await message.channel.send(
+                                f"Unsupported language code. Supported languages are: {supported_langs}."
                             )
                 else:
                     await message.channel.send(
@@ -153,9 +164,10 @@ async def translate_text(text, target_language):
     """
     Function to translate text using the OpenAI API
     """
-    language_map = {"en": "English", "jp": "Japanese"}
+    if target_language not in SUPPORTED_LANGUAGES:
+        return f"Unsupported language code: {target_language}"
 
-    target_lang_name = language_map[target_language]
+    target_lang_name = SUPPORTED_LANGUAGES[target_language]["name"]
 
     try:
         response = client.chat.completions.create(
