@@ -126,77 +126,94 @@ async def on_message(message):
 
     if message.reference and message.content.strip().startswith("@translator"):
         command = message.content.strip().split()
-        if len(command) > 1:
-            language = command[1].lower()
+        if len(command) <= 1:
+            supported_langs = ", ".join(
+                [
+                    f"'{code}' ({info['name']})"
+                    for code, info in SUPPORTED_LANGUAGES.items()
+                ]
+            )
+            await message.channel.send(
+                f"⚠️ **Error**: No language specified. Please use the format: `@translator [language code]`\n"
+                f"Available language codes: {supported_langs}"
+            )
+            logger.info(
+                f"Translation requested by {message.author} but no language was specified."
+            )
+            return
 
-            try:
-                referenced_message = await message.channel.fetch_message(
-                    message.reference.message_id
+        language = command[1].lower()
+
+        try:
+            referenced_message = await message.channel.fetch_message(
+                message.reference.message_id
+            )
+            original_text = referenced_message.content
+            if not original_text:
+                await message.channel.send(
+                    "No text to translate found. Please reply to a message containing text."
                 )
-                original_text = referenced_message.content
-                if not original_text:
-                    await message.channel.send(
-                        "No text to translate found. Please reply to a message containing text."
-                    )
-                    return
+                return
 
-                if language in SUPPORTED_LANGUAGES:
-                    async with message.channel.typing():
-                        translated_text = await translate_text(original_text, language)
-                        thread_name = f"Translation: {language.upper()}"
-                        if len(original_text) > 20:
-                            thread_name = f"Translation of '{original_text[:20]}...' to {language.upper()}"
-                        else:
-                            thread_name = f"Translation of '{original_text}' to {language.upper()}"
-                        thread = await message.create_thread(name=thread_name)
-                        if len(translated_text) > 2000:
-                            chunks = [
-                                translated_text[i : i + 2000]
-                                for i in range(0, len(translated_text), 2000)
-                            ]
-                            for i, chunk in enumerate(chunks):
-                                if i == 0:
-                                    await thread.send(
-                                        f"Translation result (1/{len(chunks)}):\n{chunk}"
-                                    )
-                                else:
-                                    await thread.send(
-                                        f"Translation result ({i + 1}/{len(chunks)}):\n{chunk}"
-                                    )
-                            logger.info(
-                                f"Translation requested by {message.author} and sent successfully in a thread."
-                            )
-                        else:
-                            await thread.send(f"Translation result:\n{translated_text}")
-                            logger.info(
-                                f"Translation requested by {message.author} and sent successfully in a thread."
-                            )
-                else:
-                    supported_langs = ", ".join(
-                        [
-                            f"'{code}' ({info['name']})"
-                            for code, info in SUPPORTED_LANGUAGES.items()
+            if language in SUPPORTED_LANGUAGES:
+                async with message.channel.typing():
+                    translated_text = await translate_text(original_text, language)
+                    thread_name = f"Translation: {language.upper()}"
+                    if len(original_text) > 20:
+                        thread_name = f"Translation of '{original_text[:20]}...' to {language.upper()}"
+                    else:
+                        thread_name = (
+                            f"Translation of '{original_text}' to {language.upper()}"
+                        )
+                    thread = await message.create_thread(name=thread_name)
+                    if len(translated_text) > 2000:
+                        chunks = [
+                            translated_text[i : i + 2000]
+                            for i in range(0, len(translated_text), 2000)
                         ]
-                    )
-                    await message.channel.send(
-                        f"Unsupported language code. Supported languages are: {supported_langs}."
-                    )
-            except discord.NotFound:
-                await message.channel.send("The referenced message was not found.")
-                logger.info(
-                    f"Translation requested by {message.author} but the referenced message was not found."
+                        for i, chunk in enumerate(chunks):
+                            if i == 0:
+                                await thread.send(
+                                    f"Translation result (1/{len(chunks)}):\n{chunk}"
+                                )
+                            else:
+                                await thread.send(
+                                    f"Translation result ({i + 1}/{len(chunks)}):\n{chunk}"
+                                )
+                        logger.info(
+                            f"Translation requested by {message.author} and sent successfully in a thread."
+                        )
+                    else:
+                        await thread.send(f"Translation result:\n{translated_text}")
+                        logger.info(
+                            f"Translation requested by {message.author} and sent successfully in a thread."
+                        )
+            else:
+                supported_langs = ", ".join(
+                    [
+                        f"'{code}' ({info['name']})"
+                        for code, info in SUPPORTED_LANGUAGES.items()
+                    ]
                 )
-            except discord.Forbidden:
-                await message.channel.send("I don't have permission to read messages.")
-                logger.info(
-                    f"Translation requested by {message.author} but I don't have permission to read messages."
+                await message.channel.send(
+                    f"Unsupported language code. Supported languages are: {supported_langs}."
                 )
-            except Exception as e:
-                logger.error(f"Error: {e}")
-                await message.channel.send(f"An error occurred: {e}")
-                logger.info(
-                    f"Translation requested by {message.author} but an error occurred: {e}"
-                )
+        except discord.NotFound:
+            await message.channel.send("The referenced message was not found.")
+            logger.info(
+                f"Translation requested by {message.author} but the referenced message was not found."
+            )
+        except discord.Forbidden:
+            await message.channel.send("I don't have permission to read messages.")
+            logger.info(
+                f"Translation requested by {message.author} but I don't have permission to read messages."
+            )
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            await message.channel.send(f"An error occurred: {e}")
+            logger.info(
+                f"Translation requested by {message.author} but an error occurred: {e}"
+            )
     await bot.process_commands(message)
 
 
