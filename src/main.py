@@ -19,6 +19,29 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+
+# Simple HTTP handler for health checks
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot is running")
+
+    def log_message(self, format, *args):
+        # Disable HTTP server logging
+        return
+
+
+# Function to start the health check server
+def start_health_server():
+    server = HTTPServer(("0.0.0.0", 8080), HealthCheckHandler)
+    logger.info("Started health check server on port 8080")
+    server.serve_forever()
+
 
 @bot.event
 async def on_ready():
@@ -33,8 +56,8 @@ async def on_ready():
         logger.info(f"Running on {len(bot.guilds)} server")
 
     for guild in bot.guilds:
-        # target_channel_names = ["discord-test"]
-        target_channel_names = ["discord-test", "novel-translation"]
+        target_channel_names = ["discord-test"]
+        # target_channel_names = ["novel-translation", "discord-test"]
         target_channels = []
 
         for channel_name in target_channel_names:
@@ -195,6 +218,9 @@ async def translate_text(text, target_language):
 
 if __name__ == "__main__":
     try:
+        # Run the health check server in a separate thread
+        health_thread = threading.Thread(target=start_health_server, daemon=True)
+        health_thread.start()
         bot.run(TOKEN)
     except discord.LoginFailure:
         logger.error("Failed to log in. Please check if the Discord TOKEN is correct.")
