@@ -33,6 +33,7 @@ async def on_ready():
         logger.info(f"Running on {len(bot.guilds)} server")
 
     for guild in bot.guilds:
+        # target_channel_names = ["discord-test"]
         target_channel_names = ["discord-test", "novel-translation"]
         target_channels = []
 
@@ -65,7 +66,7 @@ async def on_ready():
                         "> Reply to an English message with `@translator jp`\n\n"
                         "💫 Powered by state-of-the-art AI for accurate and natural translations!\n"
                         "⭐ I'm here whenever you need language assistance! ⭐\n\n"
-                        "📝 **Want more languages added?** Please contact 〇〇 to request additional languages."
+                        "📝 **Want more languages added?** Please contact Yamato to request additional languages."
                     )
                     logger.info(
                         f"Sent introduction message to {channel.name} in {guild.name}"
@@ -128,18 +129,19 @@ async def on_message(message):
                                 f"Translation requested by {message.author} and sent successfully in a thread."
                             )
                         else:
-                            supported_langs = ", ".join(
-                                [
-                                    f"'{code}' ({info['name']})"
-                                    for code, info in SUPPORTED_LANGUAGES.items()
-                                ]
-                            )
-                            await message.channel.send(
-                                f"Unsupported language code. Supported languages are: {supported_langs}."
+                            await thread.send(f"Translation result:\n{translated_text}")
+                            logger.info(
+                                f"Translation requested by {message.author} and sent successfully in a thread."
                             )
                 else:
+                    supported_langs = ", ".join(
+                        [
+                            f"'{code}' ({info['name']})"
+                            for code, info in SUPPORTED_LANGUAGES.items()
+                        ]
+                    )
                     await message.channel.send(
-                        "Supported languages are 'en' (English) or 'jp' (Japanese)."
+                        f"Unsupported language code. Supported languages are: {supported_langs}."
                     )
             except discord.NotFound:
                 await message.channel.send("The referenced message was not found.")
