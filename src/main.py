@@ -33,34 +33,45 @@ async def on_ready():
         logger.info(f"Running on {len(bot.guilds)} server")
 
     for guild in bot.guilds:
-        text_channels = [
-            channel
-            for channel in guild.channels
-            if isinstance(channel, discord.TextChannel)
-            and channel.permissions_for(guild.me).send_messages
-        ]
-        if text_channels:
-            try:
-                await text_channels[0].send(
-                    "```ini\n[POLYGLOT TRANSLATOR BOT]\n```\n"
-                    "🌐 **Hello! I'm Polyglot, your AI-powered translator bot!** 🌐\n\n"
-                    "✨ I specialize in seamless translations between **English** and **Japanese**.\n\n"
-                    "## **How to Use Me:**\n"
-                    "① **Reply** to any message you want to translate\n"
-                    "② Type one of these commands:\n"
-                    "   • `@translator en` - to translate to English 🇬🇧\n"
-                    "   • `@translator jp` - to translate to Japanese 🇯🇵\n\n"
-                    "🔍 **Examples:**\n"
-                    "> Reply to a Japanese message with `@translator en`\n"
-                    "> Reply to an English message with `@translator jp`\n\n"
-                    "💫 Powered by state-of-the-art AI for accurate and natural translations!\n"
-                    "⭐ I'm here whenever you need language assistance! ⭐"
-                )
-                logger.info(f"Sent introduction message to {guild.name}")
-            except Exception as e:
-                logger.error(
-                    f"Failed to send introduction message to {guild.name}: {e}"
-                )
+        # target_channel_names = ["discord-test", "novel-translation"]
+        target_channel_names = ["discord-test"]
+        target_channels = []
+
+        for channel_name in target_channel_names:
+            channel = discord.utils.get(
+                guild.channels, name=channel_name, type=discord.ChannelType.text
+            )
+            if channel and channel.permissions_for(guild.me).send_messages:
+                target_channels.append(channel)
+        if target_channels:
+            for channel in target_channels:
+                try:
+                    await channel.send(
+                        "```ini\n[POLYGLOT TRANSLATOR BOT]\n```\n"
+                        "🌐 **Hello! I'm Polyglot, your AI-powered translator bot!** 🌐\n\n"
+                        "✨ I specialize in seamless translations between **English** and **Japanese**.\n\n"
+                        "## **How to Use Me:**\n"
+                        "① **Reply** to any message you want to translate\n"
+                        "② Type one of these commands:\n"
+                        "   • `@translator en` - to translate to English 🇬🇧\n"
+                        "   • `@translator jp` - to translate to Japanese 🇯🇵\n\n"
+                        "🔍 **Examples:**\n"
+                        "> Reply to a Japanese message with `@translator en`\n"
+                        "> Reply to an English message with `@translator jp`\n\n"
+                        "💫 Powered by state-of-the-art AI for accurate and natural translations!\n"
+                        "⭐ I'm here whenever you need language assistance! ⭐"
+                    )
+                    logger.info(
+                        f"Sent introduction message to {channel.name} in {guild.name}"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to send introduction message to {channel.name} in {guild.name}: {e}"
+                    )
+        else:
+            logger.info(
+                f"No target channels found in {guild.name} with the specified names."
+            )
 
 
 @bot.event
@@ -87,6 +98,12 @@ async def on_message(message):
                 if language in ["en", "jp"]:
                     async with message.channel.typing():
                         translated_text = await translate_text(original_text, language)
+                        thread_name = f"Translation: {language.upper()}"
+                        if len(original_text) > 20:
+                            thread_name = f"Translation of '{original_text[:20]}...' to {language.upper()}"
+                        else:
+                            thread_name = f"Translation of '{original_text}' to {language.upper()}"
+                        thread = await message.create_thread(name=thread_name)
                         if len(translated_text) > 2000:
                             chunks = [
                                 translated_text[i : i + 2000]
@@ -94,25 +111,20 @@ async def on_message(message):
                             ]
                             for i, chunk in enumerate(chunks):
                                 if i == 0:
-                                    await message.channel.send(
+                                    await thread.send(
                                         f"Translation result (1/{len(chunks)}):\n{chunk}"
                                     )
-                                    logger.info(
-                                        f"Translation requested by {message.author} and sent successfully."
-                                    )
                                 else:
-                                    await message.channel.send(
+                                    await thread.send(
                                         f"Translation result ({i + 1}/{len(chunks)}):\n{chunk}"
                                     )
-                                    logger.info(
-                                        f"Translation requested by {message.author} and sent successfully."
-                                    )
-                        else:
-                            await message.channel.send(
-                                f"Translation result:\n{translated_text}"
-                            )
                             logger.info(
-                                f"Translation requested by {message.author} and sent successfully."
+                                f"Translation requested by {message.author} and sent successfully in a thread."
+                            )
+                        else:
+                            await thread.send(f"Translation result:\n{translated_text}")
+                            logger.info(
+                                f"Translation requested by {message.author} and sent successfully in a thread."
                             )
                 else:
                     await message.channel.send(
