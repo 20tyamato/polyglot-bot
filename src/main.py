@@ -1,5 +1,4 @@
 # src/main.py
-import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -21,19 +20,6 @@ client = openai.OpenAI(api_key=OPENAI_API_KEY)
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-
-def validate_environment():
-    required_vars = ["DISCORD_TOKEN", "OPENAI_API_KEY", "OPENAI_AI_MODEL"]
-    missing_vars = [var for var in required_vars if not get_env_var(var, None)]
-
-    if missing_vars:
-        logger.critical(
-            f"Missing required environment variables: {', '.join(missing_vars)}"
-        )
-        sys.exit(1)
-
-    logger.info("All required environment variables are set")
 
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -328,7 +314,6 @@ async def translate_text(text, target_language):
 
 if __name__ == "__main__":
     try:
-        validate_environment()
         # Run the health check server in a separate thread
         health_thread = threading.Thread(target=start_health_server, daemon=True)
         health_thread.start()
