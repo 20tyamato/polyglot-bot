@@ -43,7 +43,7 @@ Polyglotは、OpenAI APIを使用してDiscord上のメッセージを英語と�
    - 新しいアプリケーションを作成
    - 「Bot」タブでボットを作成
    - 「MESSAGE CONTENT INTENT」を有効化
-   - ボットトークンを取得し、`.env`ファイルに設定
+   - ボットトークンを取得し、`.env`ファイルに追加（`.env.example`をテンプレートとして使用）
 
 5. ボットをあなたのサーバーに招待します
    - 「OAuth2」→「URL Generator」を使用
@@ -96,4 +96,4 @@ Polyglotは、OpenAI APIを使用してDiscord上のメッセージを英語と�
 
 ## ライセンス
 
-MITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
+MITライセンスの下で公開されています。詳細は[LICENSE](LICENSE.txt)ファイルを参照してください。

@@ -43,7 +43,7 @@ Polyglot is an AI-powered Discord bot that provides seamless translation between
    - Create a new application
    - Go to the "Bot" tab and create a bot
    - Enable "MESSAGE CONTENT INTENT"
-   - Copy the bot token and add it to your `.env` file
+   - Copy the bot token and add it to your `.env` file using `.env.example` as a template
 
 5. Invite the bot to your server
    - Go to "OAuth2" > "URL Generator"
@@ -96,4 +96,4 @@ Polyglot is an AI-powered Discord bot that provides seamless translation between
 
 ## License
 
-Released under the MIT License. See the [LICENSE](LICENSE) file for details.
+Released under the MIT License. See the [LICENSE](LICENSE.txt) file for details.
