@@ -1,4 +1,8 @@
 # src/main.py
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
 import discord
 import openai
 from discord.ext import commands
@@ -18,8 +22,18 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
+
+def validate_environment():
+    required_vars = ["DISCORD_TOKEN", "OPENAI_API_KEY", "OPENAI_AI_MODEL"]
+    missing_vars = [var for var in required_vars if not get_env_var(var, None)]
+
+    if missing_vars:
+        logger.critical(
+            f"Missing required environment variables: {', '.join(missing_vars)}"
+        )
+        sys.exit(1)
+
+    logger.info("All required environment variables are set")
 
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -166,9 +180,23 @@ async def on_message(message):
                 )
                 return
 
+            if len(original_text) > 4000:
+                await message.channel.send(
+                    "⚠️ **Warning**: The message is very long and might exceed OpenAI's token limit. "
+                    "I'll try to translate it, but it may be cut off or fail."
+                )
+
             if language in SUPPORTED_LANGUAGES:
                 async with message.channel.typing():
                     translated_text = await translate_text(original_text, language)
+                    if not translated_text or translated_text.strip() == "":
+                        await message.channel.send(
+                            "⚠️ The translation result was empty. Please try again later."
+                        )
+                        logger.warning(
+                            f"Empty translation result for message from {message.author}"
+                        )
+                        return
                     thread_name = f"Translation: {language.upper()}"
                     if len(original_text) > 20:
                         thread_name = f"Translation of '{original_text[:20]}...' to {language.upper()}"
@@ -176,6 +204,37 @@ async def on_message(message):
                         thread_name = (
                             f"Translation of '{original_text}' to {language.upper()}"
                         )
+                    if not message.channel.permissions_for(
+                        message.guild.me
+                    ).create_public_threads:
+                        await message.channel.send(
+                            "⚠️ I don't have permission to create threads. The translation will be sent in this channel instead."
+                        )
+                        if len(translated_text) > 2000:
+                            chunks = [
+                                translated_text[i : i + 2000]
+                                for i in range(0, len(translated_text), 2000)
+                            ]
+                            for i, chunk in enumerate(chunks):
+                                if i == 0:
+                                    await message.channel.send(
+                                        f"Translation result (1/{len(chunks)}):\n{chunk}"
+                                    )
+                                else:
+                                    await message.channel.send(
+                                        f"Translation result ({i + 1}/{len(chunks)}):\n{chunk}"
+                                    )
+                            logger.info(
+                                f"Translation requested by {message.author} and sent successfully in the channel (no thread permission)."
+                            )
+                        else:
+                            await message.channel.send(
+                                f"Translation result:\n{translated_text}"
+                            )
+                            logger.info(
+                                f"Translation requested by {message.author} and sent successfully in the channel (no thread permission)."
+                            )
+                        return
                     thread = await message.create_thread(name=thread_name)
                     if len(translated_text) > 2000:
                         chunks = [
@@ -243,7 +302,12 @@ async def translate_text(text, target_language):
             messages=[
                 {
                     "role": "system",
-                    "content": f"You are an excellent translator. Please translate the following text to {target_lang_name}. Preserve the original nuance and meaning. Read everything before translating.",
+                    "content": (
+                        f"You are an excellent translator. Please translate the following text to {target_lang_name}. "
+                        "Preserve the original nuance, meaning, and any special formatting such as **bold**, *italic*, "
+                        "or Discord mentions like @username. Do not translate usernames in mentions. "
+                        "Read everything before translating."
+                    ),
                 },
                 {"role": "user", "content": text},
             ],
@@ -251,6 +315,9 @@ async def translate_text(text, target_language):
         return response.choices[0].message.content.strip()
     except openai.RateLimitError:
         return "OpenAI API rate limit reached. Please try again later."
+    except openai.AuthenticationError:
+        logger.error("OpenAI API key is invalid or expired")
+        return "⚠️ **Error**: Authentication failed with OpenAI. Please contact the bot administrator."
     except openai.APIError as e:
         logger.error(f"OpenAI API error: {e}")
         return f"An OpenAI API error occurred: {e}"
@@ -261,6 +328,7 @@ async def translate_text(text, target_language):
 
 if __name__ == "__main__":
     try:
+        validate_environment()
         # Run the health check server in a separate thread
         health_thread = threading.Thread(target=start_health_server, daemon=True)
         health_thread.start()
