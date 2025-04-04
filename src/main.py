@@ -42,7 +42,19 @@ async def on_ready():
         if text_channels:
             try:
                 await text_channels[0].send(
-                    "My name is Polyglot, I am a translator bot. I can translate text to English and Japanese. I am here when you need me."
+                    "```ini\n[POLYGLOT TRANSLATOR BOT]\n```\n"
+                    "🌐 **Hello! I'm Polyglot, your AI-powered translator bot!** 🌐\n\n"
+                    "✨ I specialize in seamless translations between **English** and **Japanese**.\n\n"
+                    "## **How to Use Me:**\n"
+                    "① **Reply** to any message you want to translate\n"
+                    "② Type one of these commands:\n"
+                    "   • `@translator en` - to translate to English 🇬🇧\n"
+                    "   • `@translator jp` - to translate to Japanese 🇯🇵\n\n"
+                    "🔍 **Examples:**\n"
+                    "> Reply to a Japanese message with `@translator en`\n"
+                    "> Reply to an English message with `@translator jp`\n\n"
+                    "💫 Powered by state-of-the-art AI for accurate and natural translations!\n"
+                    "⭐ I'm here whenever you need language assistance! ⭐"
                 )
                 logger.info(f"Sent introduction message to {guild.name}")
             except Exception as e:
@@ -85,13 +97,22 @@ async def on_message(message):
                                     await message.channel.send(
                                         f"Translation result (1/{len(chunks)}):\n{chunk}"
                                     )
+                                    logger.info(
+                                        f"Translation requested by {message.author} and sent successfully."
+                                    )
                                 else:
                                     await message.channel.send(
                                         f"Translation result ({i + 1}/{len(chunks)}):\n{chunk}"
                                     )
+                                    logger.info(
+                                        f"Translation requested by {message.author} and sent successfully."
+                                    )
                         else:
                             await message.channel.send(
                                 f"Translation result:\n{translated_text}"
+                            )
+                            logger.info(
+                                f"Translation requested by {message.author} and sent successfully."
                             )
                 else:
                     await message.channel.send(
@@ -99,11 +120,20 @@ async def on_message(message):
                     )
             except discord.NotFound:
                 await message.channel.send("The referenced message was not found.")
+                logger.info(
+                    f"Translation requested by {message.author} but the referenced message was not found."
+                )
             except discord.Forbidden:
                 await message.channel.send("I don't have permission to read messages.")
+                logger.info(
+                    f"Translation requested by {message.author} but I don't have permission to read messages."
+                )
             except Exception as e:
                 logger.error(f"Error: {e}")
                 await message.channel.send(f"An error occurred: {e}")
+                logger.info(
+                    f"Translation requested by {message.author} but an error occurred: {e}"
+                )
     await bot.process_commands(message)
 
 
