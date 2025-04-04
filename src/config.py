@@ -22,6 +22,11 @@ def init_logging_config():
             config_path, disable_existing_loggers=False, defaults=defaults
         )
         logging.getLogger("httpx").setLevel(logging.WARNING)
+        # Setup Logging for discord.py
+        logging.getLogger("discord").setLevel(logging.WARNING)
+        logging.getLogger("discord.http").setLevel(logging.ERROR)
+        logging.getLogger("discord.gateway").setLevel(logging.ERROR)
+        logging.getLogger("discord.client").setLevel(logging.ERROR)
     except Exception as e:
         logging.basicConfig(level=logging.INFO)
         logging.getLogger(__name__).exception(

@@ -1,5 +1,4 @@
 # src/main.py
-
 import os
 
 import discord
@@ -28,7 +27,28 @@ async def on_ready():
         type=discord.ActivityType.watching, name="translation requests | @translator"
     )
     await bot.change_presence(activity=activity)
-    logger.info(f"Running on {len(bot.guilds)} servers")
+    if len(bot.guilds) > 1:
+        logger.info(f"Running on {len(bot.guilds)} servers")
+    else:
+        logger.info(f"Running on {len(bot.guilds)} server")
+
+    for guild in bot.guilds:
+        text_channels = [
+            channel
+            for channel in guild.channels
+            if isinstance(channel, discord.TextChannel)
+            and channel.permissions_for(guild.me).send_messages
+        ]
+        if text_channels:
+            try:
+                await text_channels[0].send(
+                    "My name is Polyglot, I am a translator bot. I can translate text to English and Japanese. I am here when you need me."
+                )
+                logger.info(f"Sent introduction message to {guild.name}")
+            except Exception as e:
+                logger.error(
+                    f"Failed to send introduction message to {guild.name}: {e}"
+                )
 
 
 @bot.event
@@ -36,21 +56,16 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Check if the message is a reply and contains the command
     if message.reference and message.content.strip().startswith("@translator"):
-        # Parse the command
         command = message.content.strip().split()
         if len(command) > 1:
             language = command[1].lower()
 
             try:
-                # Get the referenced message
                 referenced_message = await message.channel.fetch_message(
                     message.reference.message_id
                 )
                 original_text = referenced_message.content
-
-                # Check if the text is empty
                 if not original_text:
                     await message.channel.send(
                         "No text to translate found. Please reply to a message containing text."
@@ -58,12 +73,8 @@ async def on_message(message):
                     return
 
                 if language in ["en", "jp"]:
-                    # Show typing indicator
                     async with message.channel.typing():
-                        # Translate the text
                         translated_text = await translate_text(original_text, language)
-
-                        # Split long messages and send them separately
                         if len(translated_text) > 2000:
                             chunks = [
                                 translated_text[i : i + 2000]
@@ -93,7 +104,6 @@ async def on_message(message):
             except Exception as e:
                 logger.error(f"Error: {e}")
                 await message.channel.send(f"An error occurred: {e}")
-
     await bot.process_commands(message)
 
 
