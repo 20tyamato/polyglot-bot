@@ -13,6 +13,10 @@ from src.utils import get_env_var
 TOKEN = get_env_var("DISCORD_TOKEN")
 OPENAI_API_KEY = get_env_var("OPENAI_API_KEY")
 
+# Limitations
+MAX_INPUT_TEXT_LENGTH = 4000
+DISCORD_MESSAGE_LIMIT = 2000
+
 # Set up OpenAI API
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
@@ -166,7 +170,7 @@ async def on_message(message):
                 )
                 return
 
-            if len(original_text) > 4000:
+            if len(original_text) > MAX_INPUT_TEXT_LENGTH:
                 await message.channel.send(
                     "⚠️ **Warning**: The message is very long and might exceed OpenAI's token limit. "
                     "I'll try to translate it, but it may be cut off or fail."
@@ -196,10 +200,12 @@ async def on_message(message):
                         await message.channel.send(
                             "⚠️ I don't have permission to create threads. The translation will be sent in this channel instead."
                         )
-                        if len(translated_text) > 2000:
+                        if len(translated_text) > DISCORD_MESSAGE_LIMIT:
                             chunks = [
-                                translated_text[i : i + 2000]
-                                for i in range(0, len(translated_text), 2000)
+                                translated_text[i : i + DISCORD_MESSAGE_LIMIT]
+                                for i in range(
+                                    0, len(translated_text), DISCORD_MESSAGE_LIMIT
+                                )
                             ]
                             for i, chunk in enumerate(chunks):
                                 if i == 0:
@@ -222,10 +228,12 @@ async def on_message(message):
                             )
                         return
                     thread = await message.create_thread(name=thread_name)
-                    if len(translated_text) > 2000:
+                    if len(translated_text) > DISCORD_MESSAGE_LIMIT:
                         chunks = [
-                            translated_text[i : i + 2000]
-                            for i in range(0, len(translated_text), 2000)
+                            translated_text[i : i + DISCORD_MESSAGE_LIMIT]
+                            for i in range(
+                                0, len(translated_text), DISCORD_MESSAGE_LIMIT
+                            )
                         ]
                         for i, chunk in enumerate(chunks):
                             if i == 0:
