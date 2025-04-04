@@ -1,15 +1,14 @@
 # src/main.py
-import os
-
 import discord
 import openai
 from discord.ext import commands
 
 from src.common import SUPPORTED_LANGUAGES, logger
+from src.utils import get_env_var
 
 # Set Discord bot token and access permissions
-TOKEN = os.getenv("DISCORD_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+TOKEN = get_env_var("DISCORD_TOKEN")
+OPENAI_API_KEY = get_env_var("OPENAI_API_KEY")
 
 # Set up OpenAI API
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
@@ -212,7 +211,7 @@ async def translate_text(text, target_language):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=get_env_var("OPENAI_AI_MODEL"),
             messages=[
                 {
                     "role": "system",
