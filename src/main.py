@@ -216,7 +216,7 @@ async def translate_text(text, target_language):
             messages=[
                 {
                     "role": "system",
-                    "content": f"You are an excellent translator. Please translate the following text to {target_lang_name}. Preserve the original nuance and meaning.",
+                    "content": f"You are an excellent translator. Please translate the following text to {target_lang_name}. Preserve the original nuance and meaning. Read everything before translating.",
                 },
                 {"role": "user", "content": text},
             ],
