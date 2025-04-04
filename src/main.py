@@ -23,7 +23,6 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 
-# Simple HTTP handler for health checks
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -32,15 +31,52 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Bot is running")
 
     def log_message(self, format, *args):
-        # Disable HTTP server logging
         return
 
 
-# Function to start the health check server
 def start_health_server():
     server = HTTPServer(("0.0.0.0", 8080), HealthCheckHandler)
     logger.info("Started health check server on port 8080")
     server.serve_forever()
+
+
+async def get_introduction_message():
+    language_commands = "\n".join(
+        [
+            f"   • `@translator {lang_code}` - {lang_info['description']} {lang_info['emoji']}"
+            for lang_code, lang_info in SUPPORTED_LANGUAGES.items()
+        ]
+    )
+
+    return (
+        "```ini\n[POLYGLOT TRANSLATOR BOT]\n```\n"
+        "🌐 **Hello! I'm Polyglot, your AI-powered translator bot!** 🌐\n\n"
+        "✨ I specialize in seamless translations between **English** and **Japanese**.\n\n"
+        "## **How to Use Me:**\n"
+        "① **Reply** to any message you want to translate\n"
+        "② Type one of these commands:\n"
+        f"{language_commands}\n\n"
+        "🔍 **Examples:**\n"
+        "> Reply to a Japanese message with `@translator en`\n"
+        "> Reply to an English message with `@translator jp`\n\n"
+        "💫 Powered by state-of-the-art AI for accurate and natural translations!\n"
+        "⭐ I'm here whenever you need language assistance! ⭐\n\n"
+        "📝 **Want more languages added?** Please contact Yamato to request additional languages."
+    )
+
+
+@bot.command(name="introduce")
+async def introduce_command(ctx):
+    """Display bot introduction and usage instructions"""
+    try:
+        intro_message = await get_introduction_message()
+        await ctx.send(intro_message)
+        logger.info(
+            f"Introduction message sent to {ctx.channel.name} requested by {ctx.author}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to send introduction message: {e}")
+        await ctx.send("Sorry, I couldn't display my introduction message.")
 
 
 @bot.event
@@ -69,28 +105,8 @@ async def on_ready():
         if target_channels:
             for channel in target_channels:
                 try:
-                    language_commands = "\n".join(
-                        [
-                            f"   • `@translator {lang_code}` - {lang_info['description']} {lang_info['emoji']}"
-                            for lang_code, lang_info in SUPPORTED_LANGUAGES.items()
-                        ]
-                    )
-
-                    await channel.send(
-                        "```ini\n[POLYGLOT TRANSLATOR BOT]\n```\n"
-                        "🌐 **Hello! I'm Polyglot, your AI-powered translator bot!** 🌐\n\n"
-                        "✨ I specialize in seamless translations between **English** and **Japanese**.\n\n"
-                        "## **How to Use Me:**\n"
-                        "① **Reply** to any message you want to translate\n"
-                        "② Type one of these commands:\n"
-                        f"{language_commands}\n\n"
-                        "🔍 **Examples:**\n"
-                        "> Reply to a Japanese message with `@translator en`\n"
-                        "> Reply to an English message with `@translator jp`\n\n"
-                        "💫 Powered by state-of-the-art AI for accurate and natural translations!\n"
-                        "⭐ I'm here whenever you need language assistance! ⭐\n\n"
-                        "📝 **Want more languages added?** Please contact Yamato to request additional languages."
-                    )
+                    intro_message = await get_introduction_message()
+                    await channel.send(intro_message)
                     logger.info(
                         f"Sent introduction message to {channel.name} in {guild.name}"
                     )
