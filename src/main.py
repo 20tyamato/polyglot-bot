@@ -14,9 +14,6 @@ from src.utils import get_env_var
 MAX_INPUT_TEXT_LENGTH = 4000
 DISCORD_MESSAGE_LIMIT = 2000
 
-# Set up OpenAI API
-client = openai.OpenAI(api_key=get_env_var("OPENAI_API_KEY"))
-
 # Set bot intents
 intents = discord.Intents.default()
 intents.message_content = True
@@ -300,6 +297,7 @@ async def translate_text(text, target_language):
         modified_text = modified_text.replace(mention, placeholder)
 
     try:
+        client = openai.OpenAI(api_key=get_env_var("OPENAI_API_KEY"))
         response = client.chat.completions.create(
             model=get_env_var("OPENAI_AI_MODEL"),
             messages=[

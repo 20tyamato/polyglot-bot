@@ -184,5 +184,4 @@ memo.md
 .DS_Store
 
 # Google Cloud Service Account Key
-config/novel-translation-414706-12ad6f412894.json
-
+config/service_account.json
