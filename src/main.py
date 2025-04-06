@@ -1,4 +1,5 @@
 # src/main.py
+import re
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -9,16 +10,12 @@ from discord.ext import commands
 from src.common import SUPPORTED_LANGUAGES, logger
 from src.utils import get_env_var
 
-# Set Discord bot token and access permissions
-TOKEN = get_env_var("DISCORD_TOKEN")
-OPENAI_API_KEY = get_env_var("OPENAI_API_KEY")
-
 # Limitations
 MAX_INPUT_TEXT_LENGTH = 4000
 DISCORD_MESSAGE_LIMIT = 2000
 
 # Set up OpenAI API
-client = openai.OpenAI(api_key=OPENAI_API_KEY)
+client = openai.OpenAI(api_key=get_env_var("OPENAI_API_KEY"))
 
 # Set bot intents
 intents = discord.Intents.default()
@@ -96,7 +93,6 @@ async def on_ready():
 
     for guild in bot.guilds:
         target_channel_names = ["discord-test"]
-        # target_channel_names = ["novel-translation", "discord-test"]
         target_channels = []
 
         for channel_name in target_channel_names:
@@ -294,6 +290,15 @@ async def translate_text(text, target_language):
 
     target_lang_name = SUPPORTED_LANGUAGES[target_language]["name"]
 
+    mention_pattern = r"<@!?&?#?\d+>|@everyone|@here"
+    mentions = re.findall(mention_pattern, text)
+
+    modified_text = text
+
+    for i, mention in enumerate(mentions):
+        placeholder = f"<__MENTION_{i}__>"
+        modified_text = modified_text.replace(mention, placeholder)
+
     try:
         response = client.chat.completions.create(
             model=get_env_var("OPENAI_AI_MODEL"),
@@ -302,12 +307,11 @@ async def translate_text(text, target_language):
                     "role": "system",
                     "content": (
                         f"You are an excellent translator. Please translate the following text to {target_lang_name}. "
-                        "Preserve the original nuance, meaning, and any special formatting such as **bold**, *italic*, "
-                        "or Discord mentions like @username. Do not translate usernames in mentions. "
+                        "Preserve the original nuance, meaning, and any special formatting such as **bold**, *italic*. "
                         "Read everything before translating."
                     ),
                 },
-                {"role": "user", "content": text},
+                {"role": "user", "content": modified_text},
             ],
         )
         return response.choices[0].message.content.strip()
@@ -329,7 +333,7 @@ if __name__ == "__main__":
         # Run the health check server in a separate thread
         health_thread = threading.Thread(target=start_health_server, daemon=True)
         health_thread.start()
-        bot.run(TOKEN)
+        bot.run(get_env_var("DISCORD_TOKEN"))
     except discord.LoginFailure:
         logger.error("Failed to log in. Please check if the Discord TOKEN is correct.")
     except Exception as e:
