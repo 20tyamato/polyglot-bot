@@ -199,17 +199,91 @@ async def on_message(message):
                         )
                         if len(translated_text) > DISCORD_MESSAGE_LIMIT:
                             max_prefix_length = len("Translation result (XX/XX):\n")
-
                             adjusted_chunk_size = (
                                 DISCORD_MESSAGE_LIMIT - max_prefix_length
                             )
 
-                            chunks = [
-                                translated_text[i : i + adjusted_chunk_size]
-                                for i in range(
-                                    0, len(translated_text), adjusted_chunk_size
-                                )
-                            ]
+                            def split_at_line_breaks(text, max_size):
+                                chunks = []
+                                lines = text.split("\n")
+                                current_chunk = []
+                                current_length = 0
+
+                                for line in lines:
+                                    # この行を追加すると制限を超えるかチェック
+                                    line_length = len(line)
+                                    new_length = current_length + line_length
+                                    if current_chunk:  # 改行分を追加
+                                        new_length += 1
+
+                                    if new_length <= max_size:
+                                        # 現在のチャンクに行を追加
+                                        current_chunk.append(line)
+                                        current_length = new_length
+                                    else:
+                                        # 現在のチャンクを保存して新しいチャンクを開始
+                                        if current_chunk:
+                                            chunks.append("\n".join(current_chunk))
+                                            current_chunk = []
+                                            current_length = 0
+
+                                        # 行自体が長すぎる場合は単語で分割
+                                        if line_length > max_size:
+                                            words = line.split(" ")
+                                            current_line = []
+                                            line_length = 0
+
+                                            for word in words:
+                                                word_length = len(word)
+                                                new_line_length = (
+                                                    line_length + word_length
+                                                )
+                                                if current_line:  # スペース分を追加
+                                                    new_line_length += 1
+
+                                                if new_line_length <= max_size:
+                                                    current_line.append(word)
+                                                    line_length = new_line_length
+                                                else:
+                                                    if current_line:
+                                                        chunks.append(
+                                                            " ".join(current_line)
+                                                        )
+                                                        current_line = []
+                                                        line_length = 0
+
+                                                    # 単語自体が長すぎる場合
+                                                    if word_length > max_size:
+                                                        for i in range(
+                                                            0, word_length, max_size
+                                                        ):
+                                                            chunks.append(
+                                                                word[
+                                                                    i : min(
+                                                                        i + max_size,
+                                                                        word_length,
+                                                                    )
+                                                                ]
+                                                            )
+                                                    else:
+                                                        current_line.append(word)
+                                                        line_length = word_length
+
+                                            if current_line:
+                                                current_chunk = [" ".join(current_line)]
+                                                current_length = line_length
+                                        else:
+                                            current_chunk = [line]
+                                            current_length = line_length
+
+                                if current_chunk:
+                                    chunks.append("\n".join(current_chunk))
+
+                                return chunks
+
+                            chunks = split_at_line_breaks(
+                                translated_text, adjusted_chunk_size
+                            )
                             for i, chunk in enumerate(chunks):
                                 if i == 0:
                                     await message.channel.send(
@@ -219,9 +293,6 @@ async def on_message(message):
                                     await message.channel.send(
                                         f"Translation result ({i + 1}/{len(chunks)}):\n{chunk}"
                                     )
-                            logger.info(
-                                f"Translation requested by {message.author} and sent successfully in the channel (no thread permission)."
-                            )
                         else:
                             await message.channel.send(
                                 f"Translation result:\n{translated_text}"
