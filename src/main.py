@@ -12,7 +12,7 @@ from src.utils import get_env_var
 
 # Limitations
 MAX_INPUT_TEXT_LENGTH = 4000
-DISCORD_MESSAGE_LIMIT = 2000
+DISCORD_MESSAGE_LIMIT = 1800
 
 # Set bot intents
 intents = discord.Intents.default()
@@ -198,10 +198,16 @@ async def on_message(message):
                             "⚠️ I don't have permission to create threads. The translation will be sent in this channel instead."
                         )
                         if len(translated_text) > DISCORD_MESSAGE_LIMIT:
+                            max_prefix_length = len("Translation result (XX/XX):\n")
+
+                            adjusted_chunk_size = (
+                                DISCORD_MESSAGE_LIMIT - max_prefix_length
+                            )
+
                             chunks = [
-                                translated_text[i : i + DISCORD_MESSAGE_LIMIT]
+                                translated_text[i : i + adjusted_chunk_size]
                                 for i in range(
-                                    0, len(translated_text), DISCORD_MESSAGE_LIMIT
+                                    0, len(translated_text), adjusted_chunk_size
                                 )
                             ]
                             for i, chunk in enumerate(chunks):

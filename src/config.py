@@ -21,12 +21,16 @@ def init_logging_config():
         logging.config.fileConfig(
             config_path, disable_existing_loggers=False, defaults=defaults
         )
-        logging.getLogger("httpx").setLevel(logging.WARNING)
-        # Setup Logging for discord.py
-        logging.getLogger("discord").setLevel(logging.WARNING)
-        logging.getLogger("discord.http").setLevel(logging.ERROR)
-        logging.getLogger("discord.gateway").setLevel(logging.ERROR)
-        logging.getLogger("discord.client").setLevel(logging.ERROR)
+        for logger_name, level in [
+            ("httpx", logging.WARNING),
+            ("discord", logging.WARNING),
+            ("discord.http", logging.ERROR),
+            ("discord.gateway", logging.ERROR),
+            ("discord.client", logging.ERROR),
+            ("googleapiclient.discovery_cache", logging.ERROR),
+            ("googleapiclient", logging.WARNING),
+        ]:
+            logging.getLogger(logger_name).setLevel(level)
     except Exception as e:
         logging.basicConfig(level=logging.INFO)
         logging.getLogger(__name__).exception(
